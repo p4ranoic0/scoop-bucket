@@ -1,0 +1,34 @@
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install Scoop
+        shell: pwsh
+        run: |
+          Invoke-RestMethod -Uri https://get.scoop.sh -OutFile install-scoop.ps1
+          .\install-scoop.ps1 -RunAsAdmin
+          Join-Path $env:USERPROFILE 'scoop\shims' | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Install from this checkout and run it
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          scoop install .\bucket\usage-relay.json
+          if ($LASTEXITCODE -ne 0) { throw 'scoop install failed' }
+          $manifest = Get-Content bucket\usage-relay.json | ConvertFrom-Json
+          $actual = "$(usage-relay --version)".Trim()
+          if ($actual -ne "usage-relay $($manifest.version)") { throw "Unexpected version: $actual" }
+          $current = Join-Path $env:USERPROFILE 'scoop\apps\usage-relay\current'
+          if (-not (Test-Path (Join-Path $current 'usage-relay-task.exe'))) { throw 'usage-relay-task.exe missing' }
+          Write-Output $actual

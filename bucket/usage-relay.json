@@ -1,0 +1,29 @@
+{
+    "version": "1.1.0",
+    "description": "Publishes Claude Code and Codex usage for the AI·mana iPhone app",
+    "homepage": "https://github.com/p4ranoic0/AI-mana",
+    "license": "MIT",
+    "architecture": {
+        "64bit": {
+            "url": "https://github.com/p4ranoic0/AI-mana/releases/download/v1.1.0/usage-relay-1.1.0-windows-x86_64.zip",
+            "hash": "ce2eaa369efe88dee09768110b6fc403577fb7d0f48095b1526523722c97b2ac"
+        }
+    },
+    "bin": "usage-relay.exe",
+    "notes": [
+        "Run 'usage-relay setup' to publish your usage every few minutes in the background,",
+        "then choose the published file in AI·mana on iPhone (Settings > Choose relay file)."
+    ],
+    "checkver": "github",
+    "autoupdate": {
+        "architecture": {
+            "64bit": {
+                "url": "https://github.com/p4ranoic0/AI-mana/releases/download/v$version/usage-relay-$version-windows-x86_64.zip"
+            }
+        },
+        "hash": {
+            "url": "https://github.com/p4ranoic0/AI-mana/releases/download/v$version/SHA256SUMS.txt",
+            "regex": "$sha256\\s+\\./$basename"
+        }
+    }
+}

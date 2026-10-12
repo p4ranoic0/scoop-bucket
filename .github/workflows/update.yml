@@ -1,0 +1,59 @@
+name: update
+
+# Points the manifest at the newest AI·mana release, installs it with Scoop on Windows and pushes the change.
+on:
+  schedule:
+    - cron: "37 6 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag (empty for the latest release)
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Update the manifest
+        id: update
+        shell: bash
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          version="$(python Scripts/update-manifest.py ${TAG:+"$TAG"})"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if [[ -z "$version" ]]; then echo "Manifest is already current."; fi
+      - name: Install Scoop
+        if: steps.update.outputs.version != ''
+        shell: pwsh
+        run: |
+          Invoke-RestMethod -Uri https://get.scoop.sh -OutFile install-scoop.ps1
+          .\install-scoop.ps1 -RunAsAdmin
+          Join-Path $env:USERPROFILE 'scoop\shims' | Out-File -FilePath $env:GITHUB_PATH -Append
+      - name: Check the new manifest
+        if: steps.update.outputs.version != ''
+        shell: pwsh
+        env:
+          VERSION: ${{ steps.update.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          scoop install .\bucket\usage-relay.json
+          if ($LASTEXITCODE -ne 0) { throw 'scoop install failed' }
+          $actual = "$(usage-relay --version)".Trim()
+          if ($actual -ne "usage-relay $env:VERSION") { throw "Unexpected version: $actual" }
+      - name: Commit and push
+        if: steps.update.outputs.version != ''
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "usage-relay ${{ steps.update.outputs.version }}"
+          git push origin HEAD:main
