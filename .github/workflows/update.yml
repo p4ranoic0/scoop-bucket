@@ -27,6 +27,7 @@ jobs:
         shell: bash
         env:
           TAG: ${{ inputs.tag }}
+          GITHUB_TOKEN: ${{ github.token }}
         run: |
           version="$(python Scripts/update-manifest.py ${TAG:+"$TAG"})"
           echo "version=$version" >> "$GITHUB_OUTPUT"
